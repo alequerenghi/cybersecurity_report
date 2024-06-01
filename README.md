@@ -3,8 +3,8 @@
 [CengBox:2](https://www.vulnhub.com/entry/cengbox-2,486/) is a Linux vulnerable machine. It is an intermediate CTF machine where the objective is to read the user and root flag.  
 The steps taken to perform the aforementioned tasks were executed autonomously only in a small part, regarding network discovery, directories enumeration and execution of the php reverse shell. For the remaining steps I followed [this](https://www.hackingarticles.in/cengbox-2-vulnhub-walkthrough/) walkthrough to crack the virtual machine.  
 To complete the challenge the following tactics and techniques were employed
-1. [Discovery](#discovery)
-    + IP address discovery
+1. [Reconnaissance and Discovery](#reconnaissance-and-discovery)
+    + Gather victim information: IP addresses
     + Network service discovery
     + [File and directory discovery](#enumeration)
 2. [Credential access](#credential-access)
@@ -18,7 +18,7 @@ To complete the challenge the following tactics and techniques were employed
 6. [Privilege escalation](#privilege-escalation)
     + Abuse elevation control mechanism
 
-## Discovery
+## Reconnaissance and discovery
 
 For the first step the commands
 ```bash
